@@ -26,6 +26,8 @@ Given work orders, work centers, and dependencies, the reflow service creates an
 │   │   ├── reflow.service.ts        # Main algorithm
 │   │   ├── dependency-dag.ts        # DAG model + topological sort
 │   │   ├── constraint-checker.ts    # Cycle, dependency, and overlap checks
+│   │   ├── reflow.service.test.ts   # Unit tests for scheduler behavior
+│   │   ├── dependency-dag.test.ts   # Unit tests for DAG behavior
 │   │   └── types.ts                 # Core document/result types
 │   ├── sample-data/
 │   │   └── scenarios.ts             # 3 runnable sample scenarios
@@ -39,6 +41,7 @@ Given work orders, work centers, and dependencies, the reflow service creates an
 ```bash
 npm install
 npm run dev
+npm test
 ```
 
 Build production JS:
@@ -72,6 +75,7 @@ npm start
 - Maintenance work-order immutability: fixed orders remain unchanged
 - Sample data scenarios (3): Delay Cascade, Shift Boundary, Maintenance Conflict
 - Bonus DAG implementation: implemented in [`src/reflow/dependency-dag.ts`](src/reflow/dependency-dag.ts)
+- Formal unit tests: implemented with Node test runner in `src/reflow/*.test.ts`
 
 ## Algorithm Summary
 
@@ -115,6 +119,6 @@ graph LR
 
 ## Next Improvements
 
-- Add formal unit tests (edge cases and impossible schedules).
-- Add explicit impossible schedule detection for malformed shift definitions.
+- Add impossible schedule detection for malformed shift definitions.
 - Add optimization metrics (total delay, utilization, and idle time).
+- Add integration tests for larger multi-work-center datasets.

@@ -1,6 +1,10 @@
 import { ReflowService } from "./reflow/reflow.service.js";
 import {
   delayCascadeScenario,
+  diamondPatternScenario,
+  fanInManyParentsScenario,
+  fanOutSameWorkCenterScenario,
+  criticalPathPriorityScenario,
   maintenanceConflictScenario,
   shiftBoundaryScenario,
 } from "./sample-data/scenarios.js";
@@ -11,6 +15,10 @@ const scenarios = [
   { name: "Delay Cascade", input: delayCascadeScenario() },
   { name: "Shift Boundary", input: shiftBoundaryScenario() },
   { name: "Maintenance Conflict", input: maintenanceConflictScenario() },
+  { name: "Fan-out Same Work Center", input: fanOutSameWorkCenterScenario() },
+  { name: "Fan-in Many Parents", input: fanInManyParentsScenario() },
+  { name: "Critical Path Priority", input: criticalPathPriorityScenario() },
+  { name: "Diamond Pattern", input: diamondPatternScenario() },
 ];
 
 for (const scenario of scenarios) {

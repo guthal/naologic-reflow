@@ -24,7 +24,10 @@ export class ReflowService {
     const byOrderId = new Map(input.workOrders.map((wo) => [wo.docId, wo]));
 
     const fixedOrders = input.workOrders.filter((wo) => wo.data.isMaintenance);
-    const sortedMovable = topologicalSort(input.workOrders).filter((wo) => !wo.data.isMaintenance);
+    const sortedMovable = topologicalSort(
+      input.workOrders,
+      input.manufacturingOrders ?? [],
+    ).filter((wo) => !wo.data.isMaintenance);
 
     const fixedByWorkCenter = groupByWorkCenter(fixedOrders);
     const workCenterCursor = new Map<string, DateTime>();

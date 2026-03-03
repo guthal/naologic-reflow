@@ -35,7 +35,7 @@ Given work orders, work centers, and dependencies, the reflow service creates an
 │   │   ├── dependency-dag.test.ts   # Unit tests for DAG behavior
 │   │   └── types.ts                 # Core document/result types
 │   ├── sample-data/
-│   │   └── scenarios.ts             # 3 runnable sample scenarios
+│   │   └── scenarios.ts             # 5 runnable sample scenarios
 │   └── utils/
 │       └── date-utils.ts            # Shift + maintenance aware date helpers
 └── dist/                            # Build output (generated)
@@ -70,6 +70,14 @@ npm start
 - Planned maintenance window blocks production time
 - Fixed maintenance work order remains immutable
 
+4. `Fan-out Same Work Center`
+- One parent unlocks two children on the same machine at the same moment
+- Tie-break uses due-date slack first, then falls back to duration/deterministic order
+
+5. `Fan-in Many Parents`
+- One child depends on multiple parent orders
+- Child starts only after the latest parent is complete
+
 ## Requirements Coverage
 
 - Reflow algorithm in TypeScript: implemented in [`src/reflow/reflow.service.ts`](src/reflow/reflow.service.ts)
@@ -80,7 +88,7 @@ npm start
 - Setup time support: optional `setupTimeMinutes` is included in working-time consumption
 - Maintenance window blocking: enforced in scheduling calendar
 - Maintenance work-order immutability: fixed orders remain unchanged
-- Sample data scenarios (3): Delay Cascade, Shift Boundary, Maintenance Conflict
+- Sample data scenarios (5): Delay Cascade, Shift Boundary, Maintenance Conflict, Fan-out Same Work Center, Fan-in Many Parents
 - Bonus DAG implementation: implemented in [`src/reflow/dependency-dag.ts`](src/reflow/dependency-dag.ts)
 - Formal unit tests: implemented with Node test runner in `src/reflow/*.test.ts`
 
@@ -108,7 +116,7 @@ It provides:
 
 - Missing dependency detection while building the graph
 - Cycle detection (`assertAcyclic`)
-- Topological ordering with tie-breaking by planned start date
+- Topological ordering with tie-breaking by planned start date, due-date slack, parent duration, cross-work-center unlock (short dependents first), branch workload, and deterministic keys
 
 Example DAG (`Delay Cascade` scenario):
 

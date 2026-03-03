@@ -15,16 +15,23 @@ Given work orders, work centers, and dependencies, the reflow service creates an
 ## Project Structure
 
 ```text
-src/
-├── index.ts                         # Runner with sample scenarios
-├── reflow/
-│   ├── reflow.service.ts            # Main algorithm
-│   ├── constraint-checker.ts        # Cycle, dependency, and overlap checks
-│   └── types.ts                     # Core document/result types
-├── sample-data/
-│   └── scenarios.ts                 # 3 runnable sample scenarios
-└── utils/
-    └── date-utils.ts                # Shift + maintenance aware date helpers
+.
+├── README.md
+├── BE-technical-test.md
+├── package.json
+├── tsconfig.json
+├── src/
+│   ├── index.ts                     # Runner with sample scenarios
+│   ├── reflow/
+│   │   ├── reflow.service.ts        # Main algorithm
+│   │   ├── dependency-dag.ts        # DAG model + topological sort
+│   │   ├── constraint-checker.ts    # Cycle, dependency, and overlap checks
+│   │   └── types.ts                 # Core document/result types
+│   ├── sample-data/
+│   │   └── scenarios.ts             # 3 runnable sample scenarios
+│   └── utils/
+│       └── date-utils.ts            # Shift + maintenance aware date helpers
+└── dist/                            # Build output (generated)
 ```
 
 ## Run
@@ -54,6 +61,17 @@ npm start
 3. `Maintenance Conflict`
 - Planned maintenance window blocks production time
 - Fixed maintenance work order remains immutable
+
+## Requirements Coverage
+
+- Reflow algorithm in TypeScript: implemented in [`src/reflow/reflow.service.ts`](src/reflow/reflow.service.ts)
+- Dependency handling (multiple parents + chains): enforced via DAG + validation checks
+- Work-center conflict handling (no overlap): validated in constraint checker
+- Shift boundary handling (pause/resume): handled in calendar-aware date utilities
+- Maintenance window blocking: enforced in scheduling calendar
+- Maintenance work-order immutability: fixed orders remain unchanged
+- Sample data scenarios (3): Delay Cascade, Shift Boundary, Maintenance Conflict
+- Bonus DAG implementation: implemented in [`src/reflow/dependency-dag.ts`](src/reflow/dependency-dag.ts)
 
 ## Algorithm Summary
 

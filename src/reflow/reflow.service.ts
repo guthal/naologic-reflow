@@ -46,11 +46,12 @@ export class ReflowService {
 
       const notBefore = maxDate([originalStart, depsEnd, cursor].filter(Boolean) as DateTime[]);
       const startDate = findEarliestWorkingMoment(workCenter, blockedWindows, notBefore);
+      const totalWorkingMinutes = getTotalWorkingMinutes(order);
       const endDate = calculateEndDateWithCalendar(
         workCenter,
         blockedWindows,
         startDate,
-        order.data.durationMinutes,
+        totalWorkingMinutes,
       );
 
       const updatedOrder: WorkOrderDoc = {
@@ -109,6 +110,14 @@ function getDependenciesLatestEnd(
 
 function maxDate(dates: DateTime[]): DateTime {
   return dates.reduce((acc, curr) => (curr > acc ? curr : acc));
+}
+
+function getTotalWorkingMinutes(order: WorkOrderDoc): number {
+  const setup = order.data.setupTimeMinutes ?? 0;
+  if (setup < 0) {
+    throw new Error(`setupTimeMinutes cannot be negative for ${order.docId}`);
+  }
+  return order.data.durationMinutes + setup;
 }
 
 function cloneWorkOrder(wo: WorkOrderDoc): WorkOrderDoc {

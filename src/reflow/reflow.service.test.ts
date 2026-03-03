@@ -143,3 +143,40 @@ test("reflow throws on circular dependency graph", () => {
 
   assert.throws(() => service.reflow(input), /Circular dependency detected/);
 });
+
+test("setupTimeMinutes is counted as working time within shifts", () => {
+  const workCenter: WorkCenterDoc = {
+    docId: "wc-setup",
+    docType: "workCenter",
+    data: {
+      name: "Line Setup",
+      shifts: [{ dayOfWeek: 1, startHour: 8, endHour: 17 }, { dayOfWeek: 2, startHour: 8, endHour: 17 }],
+      maintenanceWindows: [],
+    },
+  };
+
+  const workOrders: WorkOrderDoc[] = [
+    {
+      docId: "wo-setup-1",
+      docType: "workOrder",
+      data: {
+        workOrderNumber: "WO-SETUP-1",
+        manufacturingOrderId: "MO-SETUP-1",
+        workCenterId: "wc-setup",
+        startDate: "2026-03-02T16:00:00Z",
+        endDate: "2026-03-02T17:00:00Z",
+        durationMinutes: 60,
+        setupTimeMinutes: 60,
+        isMaintenance: false,
+        dependsOnWorkOrderIds: [],
+      },
+    },
+  ];
+
+  const input: ReflowInput = { workCenters: [workCenter], workOrders };
+  const result = service.reflow(input);
+  const order = findById(result.updatedWorkOrders, "wo-setup-1");
+
+  assert.equal(order.data.startDate, "2026-03-02T16:00:00Z");
+  assert.equal(order.data.endDate, "2026-03-03T09:00:00Z");
+});

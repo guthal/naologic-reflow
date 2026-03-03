@@ -12,6 +12,11 @@ Given work orders, work centers, and dependencies, the reflow service creates an
 - Maintenance window blocking
 - Fixed maintenance work orders (`isMaintenance = true`) remain unchanged
 
+## Assumptions and Scope
+
+- Work orders remain assigned to their original work center.
+- Work-center reassignment is outside the scope of this implementation.
+
 ## Project Structure
 
 ```text
@@ -70,7 +75,9 @@ npm start
 - Reflow algorithm in TypeScript: implemented in [`src/reflow/reflow.service.ts`](src/reflow/reflow.service.ts)
 - Dependency handling (multiple parents + chains): enforced via DAG + validation checks
 - Work-center conflict handling (no overlap): validated in constraint checker
+- Work-center reassignment: not implemented (out of scope)
 - Shift boundary handling (pause/resume): handled in calendar-aware date utilities
+- Setup time support: optional `setupTimeMinutes` is included in working-time consumption
 - Maintenance window blocking: enforced in scheduling calendar
 - Maintenance work-order immutability: fixed orders remain unchanged
 - Sample data scenarios (3): Delay Cascade, Shift Boundary, Maintenance Conflict
@@ -88,7 +95,7 @@ npm start
   - latest dependency completion
   - current work-center sequencing cursor
 - Align to first valid working instant in shift and outside blocked windows.
-- Calculate completion by consuming `durationMinutes` across available working intervals.
+- Calculate completion by consuming `durationMinutes + setupTimeMinutes` across available working intervals.
 5. Validate final schedule:
 - dependency correctness
 - no overlaps per work center

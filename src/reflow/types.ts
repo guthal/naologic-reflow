@@ -13,6 +13,7 @@ export type WorkOrderDoc = BaseDoc<
     startDate: string;
     endDate: string;
     durationMinutes: number;
+    setupTimeMinutes?: number;
     isMaintenance: boolean;
     dependsOnWorkOrderIds: string[];
   }

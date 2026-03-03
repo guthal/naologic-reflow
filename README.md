@@ -71,6 +71,24 @@ npm start
 - dependency correctness
 - no overlaps per work center
 
+## DAG Dependency Model
+
+Dependency management is implemented as a dedicated DAG in
+[`src/reflow/dependency-dag.ts`](src/reflow/dependency-dag.ts).
+It provides:
+
+- Missing dependency detection while building the graph
+- Cycle detection (`assertAcyclic`)
+- Topological ordering with tie-breaking by planned start date
+
+Example DAG (`Delay Cascade` scenario):
+
+```mermaid
+graph LR
+  WO1001["WO-1001"] --> WO1002["WO-1002"]
+  WO1002 --> WO1003["WO-1003"]
+```
+
 ## Notes
 
 - All datetimes are handled in UTC.

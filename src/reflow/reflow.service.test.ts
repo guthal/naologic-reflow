@@ -29,6 +29,13 @@ test("delay cascade scenario shifts downstream dependent orders", () => {
   assert.equal(byNumber.get("WO-1003")?.data.endDate, "2026-03-03T12:00:00Z");
 
   assert.equal(result.changes.length, 3);
+  const wo1002Change = result.changes.find((change) => change.workOrderNumber === "WO-1002");
+  assert.ok(wo1002Change, "Expected change entry for WO-1002");
+  assert.match(wo1002Change.reason, /dependency wait/i);
+  assert.doesNotMatch(
+    wo1002Change.reason,
+    /Dependency, shift, maintenance, or work-center conflict resolution/i,
+  );
   assertDependenciesSatisfied(result.updatedWorkOrders);
   assertNoOverlapsByWorkCenter(result.updatedWorkOrders, delayCascadeScenario().workCenters);
 });

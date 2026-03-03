@@ -7,6 +7,7 @@ import {
 } from "./constraint-checker.js";
 import type { ReflowInput, ReflowResult, WorkCenterDoc, WorkOrderChange, WorkOrderDoc } from "./types.js";
 import {
+  type TimeWindow,
   buildBlockedWindows,
   calculateEndDateWithCalendar,
   findEarliestWorkingMoment,
@@ -28,6 +29,7 @@ export class ReflowService {
     const fixedByWorkCenter = groupByWorkCenter(fixedOrders);
     const workCenterCursor = new Map<string, DateTime>();
     const scheduledById = new Map<string, WorkOrderDoc>();
+    const reasonByOrderId = new Map<string, string>();
 
     for (const fixed of fixedOrders) {
       scheduledById.set(fixed.docId, cloneWorkOrder(fixed));
@@ -65,13 +67,26 @@ export class ReflowService {
 
       scheduledById.set(order.docId, updatedOrder);
       workCenterCursor.set(workCenter.docId, endDate);
+      reasonByOrderId.set(
+        order.docId,
+        buildRescheduleReason({
+          order,
+          workCenter,
+          blockedWindows,
+          originalStart,
+          depsEnd,
+          cursor,
+          notBefore,
+          startDate,
+        }),
+      );
     }
 
     const updatedWorkOrders = input.workOrders.map((wo) => scheduledById.get(wo.docId)!);
     assertDependenciesSatisfied(updatedWorkOrders);
     assertNoOverlapsByWorkCenter(updatedWorkOrders, input.workCenters);
 
-    const changes = buildChanges(input.workOrders, updatedWorkOrders);
+    const changes = buildChanges(input.workOrders, updatedWorkOrders, reasonByOrderId);
     const explanation = buildExplanation(changes, input.workCenters);
 
     return {
@@ -120,6 +135,65 @@ function getTotalWorkingMinutes(order: WorkOrderDoc): number {
   return order.data.durationMinutes + setup;
 }
 
+function buildRescheduleReason(args: {
+  order: WorkOrderDoc;
+  workCenter: WorkCenterDoc;
+  blockedWindows: TimeWindow[];
+  originalStart: DateTime;
+  depsEnd: DateTime;
+  cursor?: DateTime;
+  notBefore: DateTime;
+  startDate: DateTime;
+}): string {
+  const { order, workCenter, blockedWindows, originalStart, depsEnd, cursor, notBefore, startDate } = args;
+  const reasons: string[] = [];
+
+  if (order.data.dependsOnWorkOrderIds.length > 0 && depsEnd > originalStart) {
+    reasons.push(`dependency wait until ${toIsoUtc(depsEnd)}`);
+  }
+
+  if (cursor && cursor > maxDate([originalStart, depsEnd])) {
+    reasons.push(`work-center queue on ${workCenter.data.name} until ${toIsoUtc(cursor)}`);
+  }
+
+  if (startDate > notBefore) {
+    const activeBlock = getActiveBlock(blockedWindows, notBefore);
+    if (activeBlock) {
+      reasons.push(`blocked by ${activeBlock.reason} until ${toIsoUtc(activeBlock.end)}`);
+    }
+    if (!isInShift(workCenter, notBefore)) {
+      reasons.push(`outside shift hours, resumed at ${toIsoUtc(startDate)}`);
+    }
+  }
+
+  if ((order.data.setupTimeMinutes ?? 0) > 0) {
+    reasons.push(
+      `includes setup time (${order.data.setupTimeMinutes}m) as working time within shift calendar`,
+    );
+  }
+
+  if (reasons.length === 0) {
+    return "No date movement required after constraint evaluation.";
+  }
+
+  return reasons.join("; ");
+}
+
+function isInShift(workCenter: WorkCenterDoc, at: DateTime): boolean {
+  const dayOfWeek = at.weekday % 7;
+  const hour = at.hour + at.minute / 60;
+  return workCenter.data.shifts.some(
+    (shift) => shift.dayOfWeek === dayOfWeek && hour >= shift.startHour && hour < shift.endHour,
+  );
+}
+
+function getActiveBlock(blockedWindows: TimeWindow[], at: DateTime): TimeWindow | null {
+  for (const window of blockedWindows) {
+    if (at >= window.start && at < window.end) return window;
+  }
+  return null;
+}
+
 function cloneWorkOrder(wo: WorkOrderDoc): WorkOrderDoc {
   return {
     ...wo,
@@ -127,7 +201,11 @@ function cloneWorkOrder(wo: WorkOrderDoc): WorkOrderDoc {
   };
 }
 
-function buildChanges(original: WorkOrderDoc[], updated: WorkOrderDoc[]): WorkOrderChange[] {
+function buildChanges(
+  original: WorkOrderDoc[],
+  updated: WorkOrderDoc[],
+  reasonByOrderId: Map<string, string>,
+): WorkOrderChange[] {
   const updatedById = new Map(updated.map((wo) => [wo.docId, wo]));
   const changes: WorkOrderChange[] = [];
 
@@ -146,7 +224,7 @@ function buildChanges(original: WorkOrderDoc[], updated: WorkOrderDoc[]): WorkOr
         newEndDate: newOrder.data.endDate,
         startShiftMinutes: minutesDiff(toUtc(oldOrder.data.startDate), toUtc(newOrder.data.startDate)),
         endShiftMinutes: minutesDiff(toUtc(oldOrder.data.endDate), toUtc(newOrder.data.endDate)),
-        reason: "Dependency, shift, maintenance, or work-center conflict resolution",
+        reason: reasonByOrderId.get(oldOrder.docId) ?? "Rescheduled to satisfy constraints.",
       });
     }
   }
